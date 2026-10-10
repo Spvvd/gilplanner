@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="GilPlanner/GilPlanner.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="tests/GilPlanner.Tests/GilPlanner.Tests.csproj" />
+</Solution>

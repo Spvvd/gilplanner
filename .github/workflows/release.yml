@@ -1,0 +1,99 @@
+name: Release
+
+# Push a tag like v1.0.1.0 to publish a new version: it is built, tested, attached to a GitHub release, and
+# repo.json (the file friends add as a custom repository) is updated to point at it.
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+
+    - name: Read the version from the tag
+      shell: bash
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "The tag must look like v1.2.3.4 (four numbers), but it is $GITHUB_REF_NAME"
+          exit 1
+        fi
+        echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Download Dalamud
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile latest.zip
+        Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev"
+
+    - name: Build
+      run: dotnet build GilPlanner.slnx --configuration Release -p:Version=${{ env.VERSION }} -p:RepoUrl=https://github.com/${{ github.repository }}
+
+    - name: Test
+      run: dotnet test tests/GilPlanner.Tests --configuration Release --no-build
+
+    - name: Store the plugin zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: plugin
+        path: GilPlanner/bin/**/latest.zip
+        if-no-files-found: error
+        retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout the default branch
+      uses: actions/checkout@v5
+      with:
+        ref: ${{ github.event.repository.default_branch }}
+
+    - name: Get the plugin zip
+      uses: actions/download-artifact@v4
+      with:
+        name: plugin
+        path: dist
+
+    - name: Create the GitHub release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        ZIP="$(find dist -name latest.zip | head -n 1)"
+        test -n "$ZIP"
+        cp "$ZIP" latest.zip
+        gh release create "$GITHUB_REF_NAME" latest.zip --title "$GITHUB_REF_NAME" --generate-notes
+
+    - name: Update repo.json
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        CHANGELOG="$(gh release view "$GITHUB_REF_NAME" --json body --jq .body)"
+        python3 scripts/update_repo_json.py \
+          --zip latest.zip \
+          --repo "$GITHUB_REPOSITORY" \
+          --tag "$GITHUB_REF_NAME" \
+          --changelog "$CHANGELOG"
+
+    - name: Commit repo.json
+      env:
+        BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add repo.json
+        git commit -m "Update repo.json for $GITHUB_REF_NAME"
+        git push origin "HEAD:$BRANCH"

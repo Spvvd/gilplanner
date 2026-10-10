@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+  <PropertyGroup>
+    <Version>1.0.0.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Manifest fields, turned into GilPlanner.json by DalamudPackager on build -->
+    <Author>spvvd</Author>
+    <Name>Gil Planner</Name>
+    <Punchline>Find the most profitable items to craft, flip or gather.</Punchline>
+    <Description>Track craftable items and compare flipping, crafting and gathering profit using Universalis market data.</Description>
+    <Tags>market;crafting;gil;universalis</Tags>
+  </PropertyGroup>
+</Project>
