@@ -3,7 +3,7 @@
     "Author": "spvvd",
     "Name": "Gil Planner",
     "InternalName": "GilPlanner",
-    "AssemblyVersion": "1.0.0.0",
+    "AssemblyVersion": "1.0.1.0",
     "Description": "Track craftable items and compare flipping, crafting and gathering profit using Universalis market data.",
     "Punchline": "Find the most profitable items to craft, flip or gather.",
     "Tags": [
@@ -19,15 +19,15 @@
     "CanUnloadAsync": false,
     "LoadPriority": 0,
     "AcceptsFeedback": true,
-    "Changelog": "**Full Changelog**: https://github.com/Spvvd/gilplanner/commits/v1.0.0.0",
+    "Changelog": "**Full Changelog**: https://github.com/Spvvd/gilplanner/compare/v1.0.0.0...v1.0.1.0",
     "IsHide": false,
     "IsTestingExclusive": false,
     "RepoUrl": "https://github.com/Spvvd/gilplanner",
     "ImageUrls": [],
     "DownloadCount": 0,
-    "LastUpdate": 1791620035,
-    "DownloadLinkInstall": "https://github.com/Spvvd/gilplanner/releases/download/v1.0.0.0/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/Spvvd/gilplanner/releases/download/v1.0.0.0/latest.zip",
-    "DownloadLinkTesting": "https://github.com/Spvvd/gilplanner/releases/download/v1.0.0.0/latest.zip"
+    "LastUpdate": 1791700971,
+    "DownloadLinkInstall": "https://github.com/Spvvd/gilplanner/releases/download/v1.0.1.0/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/Spvvd/gilplanner/releases/download/v1.0.1.0/latest.zip",
+    "DownloadLinkTesting": "https://github.com/Spvvd/gilplanner/releases/download/v1.0.1.0/latest.zip"
   }
 ]
