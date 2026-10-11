@@ -120,7 +120,7 @@ public sealed class MainWindow : Window
     private void DrawStatusBar()
     {
         var market = planner.Market;
-        var world = planner.CurrentWorld();
+        var world = planner.PricingWorld();
 
         var cooldown = planner.RefreshCooldownRemaining;
         ImGui.BeginDisabled(market.IsRefreshing || world is null || planner.Analyses.Count == 0 || cooldown > TimeSpan.Zero);
@@ -135,14 +135,14 @@ public sealed class MainWindow : Window
             ImGui.TextColored(Dim, "Log in to a character to load prices.");
         else if (market.IsRefreshing)
             ImGui.TextColored(Dim, $"{world.Value.Name}: refreshing...");
-        else if (!planner.HasDataForCurrentWorld)
+        else if (!planner.HasDataForPricingWorld)
             ImGui.TextColored(Warn, configuration.AutoRefresh
                 ? $"{world.Value.Name}: no prices loaded yet."
                 : $"{world.Value.Name}: auto-refresh is off, press Refresh to load prices.");
         else if (planner.DataAge is { } age)
             ImGui.TextColored(
                 FreshnessColor(planner.Freshness),
-                $"{world.Value.Name} (own data center for cheapest price): updated {FormatAge(age)}"
+                $"{world.Value.Name} ({(configuration.UseHomeWorld ? "home world" : "current world")}, cheapest prices from its data center): updated {FormatAge(age)}"
                 + (configuration.AutoRefresh ? string.Empty : " (auto-refresh off)"));
 
         DrawHealthBanner(world is not null);
@@ -160,7 +160,7 @@ public sealed class MainWindow : Window
         if (failure is null && freshness == Freshness.Fresh)
             return;
 
-        var severe = freshness == Freshness.VeryStale || market.AutoRefreshPaused || !planner.HasDataForCurrentWorld;
+        var severe = freshness == Freshness.VeryStale || market.AutoRefreshPaused || !planner.HasDataForPricingWorld;
         var color = severe ? Red : Warn;
 
         ImGui.BeginGroup();
@@ -644,7 +644,7 @@ public sealed class MainWindow : Window
         planner.PopularTick();
 
         var popular = planner.Popular;
-        var world = planner.CurrentWorld();
+        var world = planner.PricingWorld();
 
         ImGui.BeginDisabled(popular.IsScanning || world is null);
         if (ImGui.Button("Rescan"))
@@ -826,6 +826,12 @@ public sealed class MainWindow : Window
         ImGui.Separator();
         ImGui.TextUnformatted("Pricing");
 
+        ImGui.TextUnformatted("\"My world\" prices are for:");
+        DrawWorldOption($"My character's home world{WorldSuffix(planner.HomeWorld())}", true);
+        DrawWorldOption($"The world I am on right now{WorldSuffix(planner.CurrentWorld())}", false);
+        ImGui.TextColored(Dim, "Applies to sell prices, sales per day, the Popular tab, and which data center is searched for the cheapest prices.");
+        ImGui.Spacing();
+
         var preferHq = configuration.PreferHq;
         if (ImGui.Checkbox("Sell HQ when the item can be HQ", ref preferHq))
         {
@@ -882,6 +888,20 @@ public sealed class MainWindow : Window
     {
         if (ImGui.IsItemDeactivatedAfterEdit())
             configuration.Save(pluginInterface);
+    }
+
+    private static string WorldSuffix((uint Id, string Name)? world) => world is { } w ? $" ({w.Name})" : string.Empty;
+
+    private void DrawWorldOption(string label, bool homeWorld)
+    {
+        if (!ImGui.RadioButton(label, configuration.UseHomeWorld == homeWorld))
+            return;
+
+        configuration.UseHomeWorld = homeWorld;
+        configuration.Save(pluginInterface);
+
+        // The prices on screen belong to the other world now; load the ones for the newly chosen world.
+        planner.Refresh();
     }
 
     private void DrawBasisOption(string label, SellPriceBasis basis)

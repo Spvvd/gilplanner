@@ -21,6 +21,12 @@ public sealed class Configuration : IPluginConfiguration
 
     public int AutoRefreshMinutes { get; set; } = 5;
 
+    /// <summary>
+    /// Prices ("My world") are for your character's home world. Off: for the world you are on right now, which
+    /// differs while you visit another world.
+    /// </summary>
+    public bool UseHomeWorld { get; set; } = true;
+
     public bool PreferHq { get; set; } = true;
 
     public float MarketTaxPercent { get; set; } = 5f;

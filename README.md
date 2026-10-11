@@ -4,7 +4,7 @@ Track craftable items and compare three ways of making gil, using live Universal
 
 | Column | Meaning |
 | --- | --- |
-| My world | The sell price on your current world (see Robust sell price below); hover for lowest listing and average sale |
+| My world | The sell price on your home world, or on the world you are on if you choose that in Settings (see Robust sell price below); hover for lowest listing and average sale |
 | Cheapest (DC) | Cheapest listing in your data center, and on which world |
 | Flip profit | Buy at the cheapest DC listing, sell on your world |
 | Craft profit | Buy all materials at the cheapest DC prices (vendor price if lower, sub-recipes crafted if cheaper), craft, sell on your world |
@@ -24,6 +24,9 @@ Profits are per item, in gil and as a percentage of cost, after market tax (5%, 
   sale price. You can switch to the plain lowest listing or the average sale price in Settings.
 - **Row actions.** Right-click an item to show a clickable item link in chat (only you see it), open it on
   Universalis, or open it in the crafting log. Right-click a row in the Market tab to remove it.
+- **Which world is "my world".** By default it is your character's home world, so prices stay the same while you
+  visit another world. In Settings you can switch to the world you are on right now. The choice also decides which data
+  center is searched for the cheapest prices and which world the Popular tab scans.
 - Adding several items in a row makes one refresh shortly after the last one, not one per item.
 - Add items by right-clicking a craftable item in game ("Add to Gil Planner"), with the search box, or from the
   Popular tab. `/gilplanner` toggles the window.

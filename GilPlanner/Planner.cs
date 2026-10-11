@@ -35,15 +35,26 @@ public sealed class Planner(
 
     public IReadOnlyList<ItemAnalysis> Analyses { get; private set; } = [];
 
-    /// <summary>The world the player is currently on. Must be called from the game thread.</summary>
-    public (uint Id, string Name)? CurrentWorld()
+    /// <summary>The world the player is on right now (differs from the home world while visiting). Game thread only.</summary>
+    public (uint Id, string Name)? CurrentWorld() => playerState.IsLoaded ? Named(playerState.CurrentWorld.RowId) : null;
+
+    /// <summary>The world the player's character belongs to. Game thread only.</summary>
+    public (uint Id, string Name)? HomeWorld() => playerState.IsLoaded ? Named(playerState.HomeWorld.RowId) : null;
+
+    /// <summary>
+    /// The world all prices are for ("My world"): the home world or the current world, as chosen in the settings.
+    /// Its data center is the one searched for the cheapest prices. Game thread only.
+    /// </summary>
+    public (uint Id, string Name)? PricingWorld()
     {
         if (!playerState.IsLoaded)
             return null;
 
-        var id = playerState.CurrentWorld.RowId;
-        return id == 0 ? null : (id, gameData.GetWorldName(id));
+        var id = PricingWorldSelector.Select(configuration.UseHomeWorld, playerState.HomeWorld.RowId, playerState.CurrentWorld.RowId);
+        return id is { } world ? Named(world) : null;
     }
+
+    private (uint Id, string Name)? Named(uint worldId) => worldId == 0 ? null : (worldId, gameData.GetWorldName(worldId));
 
     public bool IsTracked(uint itemId) => configuration.TrackedItemIds.Contains(itemId);
 
@@ -85,7 +96,7 @@ public sealed class Planner(
 
     /// <summary>How old the prices on screen are, or null when there are none for this world.</summary>
     public TimeSpan? DataAge =>
-        HasDataForCurrentWorld && market.LastUpdated is { } updated ? DateTimeOffset.UtcNow - updated : null;
+        HasDataForPricingWorld && market.LastUpdated is { } updated ? DateTimeOffset.UtcNow - updated : null;
 
     public Freshness Freshness => DataAge is { } age
         ? DataFreshness.Classify(age, configuration.AutoRefresh, RefreshInterval)
@@ -96,7 +107,7 @@ public sealed class Planner(
     /// <summary>Refreshes now. This is a manual action (button, adding an item): it ignores the failure backoff.</summary>
     public void Refresh()
     {
-        if (CurrentWorld() is not { } world || configuration.TrackedItemIds.Count == 0)
+        if (PricingWorld() is not { } world || configuration.TrackedItemIds.Count == 0)
             return;
 
         lastRefreshAttempt = DateTime.UtcNow;
@@ -111,7 +122,7 @@ public sealed class Planner(
     /// <summary>Scans the sales velocity of every craftable, marketable item on the current world.</summary>
     public void ScanPopular()
     {
-        if (CurrentWorld() is not { } world)
+        if (PricingWorld() is not { } world)
             return;
 
         popular.Scan(world.Name, world.Id, gameData.CraftableItems.Select(i => i.Id).ToList());
@@ -123,7 +134,7 @@ public sealed class Planner(
     /// </summary>
     public void PopularTick()
     {
-        if (CurrentWorld() is not { } world || popular.IsScanning)
+        if (PricingWorld() is not { } world || popular.IsScanning)
             return;
 
         if (popular.WorldId != world.Id && popularCache.Get(world.Id) is { } cached)
@@ -145,7 +156,7 @@ public sealed class Planner(
     public void Tick()
     {
         // After failures the market service says when automatic refreshing may try again, and stops after too many.
-        if (configuration.AutoRefresh && CurrentWorld() is { } world && configuration.TrackedItemIds.Count > 0
+        if (configuration.AutoRefresh && PricingWorld() is { } world && configuration.TrackedItemIds.Count > 0
             && !market.IsRefreshing && DateTime.UtcNow - lastRefreshAttempt > MinRetryInterval
             && !market.IsAutoRefreshBlocked(DateTimeOffset.UtcNow))
         {
@@ -157,13 +168,13 @@ public sealed class Planner(
         RebuildAnalysesIfNeeded();
     }
 
-    /// <summary>True when the loaded market data belongs to the world the player is on now.</summary>
-    public bool HasDataForCurrentWorld => CurrentWorld() is { } world && market.LastUpdated is not null && market.WorldId == world.Id;
+    /// <summary>True when the loaded market data belongs to the pricing world.</summary>
+    public bool HasDataForPricingWorld => PricingWorld() is { } world && market.LastUpdated is not null && market.WorldId == world.Id;
 
     private void RebuildAnalysesIfNeeded()
     {
         // Prices from another world are meaningless here, so they are hidden rather than shown as if current.
-        var dataIsCurrent = HasDataForCurrentWorld;
+        var dataIsCurrent = HasDataForPricingWorld;
 
         var hash = new HashCode();
         hash.Add(market.Version);
